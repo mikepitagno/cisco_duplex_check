@@ -199,8 +199,8 @@ def main():
       email_dict(half_duplex_dict, full_duplex_dict, email_sender, email_receiver, smtp_server)
       dump_to_yaml(half_duplex_dict, full_duplex_dict)
   else:
-    print_dict(half_duplex_dict, full_duplex_dict)
-    dump_to_yaml(half_duplex_dict, full_duplex_dict)
+      print_dict(half_duplex_dict, full_duplex_dict)
+      dump_to_yaml(half_duplex_dict, full_duplex_dict)
 
 if __name__ == '__main__':
   try:
