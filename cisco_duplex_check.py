@@ -28,6 +28,8 @@ from email.mime.text import MIMEText
 import argparse
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 import yaml
+import os
+from os.path import expanduser
 
 def snmp_get_v2(snmp_target, oid, display_errors=False):
   """SNMP Get function with error handling"""
@@ -74,13 +76,14 @@ def create_device_dict(device_name, snmp_community_string, snmp_port, half_duple
   int_up_list = create_int_up_list(device_int_dict, snmp_target)
   half_duplex_list, full_duplex_list = find_duplex(int_up_list, snmp_target)
   half_duplex_dict[device_name], full_duplex_dict[device_name] = get_int_detail(half_duplex_list, full_duplex_list, device_int_dict)
+  dump_to_yaml(half_duplex_dict[device_name], full_duplex_dict[device_name], device_name)
   return half_duplex_dict[device_name], full_duplex_dict[device_name]
 
 def create_device_int_dict(snmp_target):
   """ Generate and return a list of all interfaces for specified device; Check for saved file before running SNMP"""
   device_name = snmp_target[0].upper()
   try:
-    with open("%s-all_int.yaml" % device_name, "r") as f:
+    with open("%s/%s-all_int.yaml" % (device_path,device_name), "r") as f:
       device_int_dict = yaml.load(f)
   except IOError:
     pass
@@ -99,7 +102,7 @@ def create_device_int_dict(snmp_target):
         device_int_dict[ifdesc_oid_prefix] = {}
         device_int_dict[ifdesc_oid_prefix]['ifdesc'] = ifdesc
         device_int_dict[ifdesc_oid_prefix]['ifalias'] = ifalias
-    with open("%s-all_int.yaml" % device_name, "w") as f:
+    with open("%s/%s-all_int.yaml" % (device_path,device_name), "w") as f:
       yaml.dump(device_int_dict, f)
   return device_int_dict
 
@@ -168,15 +171,35 @@ def print_dict(half_duplex_dict, full_duplex_dict):
   body = dict_format(half_duplex_dict, full_duplex_dict)
   print body
 
-def dump_to_yaml(half_duplex_dict, full_duplex_dict):
-  with open("%s-duplex.yaml" % device_name, "w") as f:
+def dump_to_yaml(half_duplex_dict, full_duplex_dict, device_name):
+  with open("%s/%s-duplex.yaml" % (device_path,device_name), "w") as f:
+    f.write("Half Duplex Ports: ")
     f.write(yaml.dump(half_duplex_dict))
-  with open("%s-duplex.yaml" % device_name, "a") as f:
+  with open("%s/%s-duplex.yaml" % (device_path,device_name), "a") as f:
+    f.write("Full Duplex Ports: ")
     f.write(yaml.dump(full_duplex_dict))
+
+def email_dict(half_duplex_dict, full_duplex_dict, email_sender, email_receiver, smtp_server):
+  """Email report to address specified in command line options"""
+  body = dict_format(half_duplex_dict, full_duplex_dict)
+  msg = MIMEText(body)
+  msg['Subject'] = "Duplex Report"
+  msg['From'] = email_sender
+  msg['To'] = email_receiver
+  s = smtplib.SMTP(smtp_server)
+  s.sendmail(email_sender, [email_receiver], msg.as_string())
+  s.quit()
 
 # Main Program
 def main():
+  
+  home = expanduser("~")
+  global device_path 
+  device_path = home + '/NETWORK_DEVICES'
 
+  if os.path.exists(device_path) == False:
+      os.makedirs(device_path)
+ 
   parser = argparse.ArgumentParser(description='CLI arguments for cisco_duplex_check.py.  Note: User must specify either single device with -d or device list file with -l')
   device = parser.add_mutually_exclusive_group()
   device.add_argument('-d','--device_name',type=str,help='Target Device Name',nargs='?')
@@ -197,10 +220,10 @@ def main():
       email_sender = args.email[0]
       email_receiver = args.email[1]
       email_dict(half_duplex_dict, full_duplex_dict, email_sender, email_receiver, smtp_server)
-      dump_to_yaml(half_duplex_dict, full_duplex_dict)
+      #dump_to_yaml(half_duplex_dict, full_duplex_dict)
   else:
       print_dict(half_duplex_dict, full_duplex_dict)
-      dump_to_yaml(half_duplex_dict, full_duplex_dict)
+      #dump_to_yaml(half_duplex_dict, full_duplex_dict)
 
 if __name__ == '__main__':
   try:
