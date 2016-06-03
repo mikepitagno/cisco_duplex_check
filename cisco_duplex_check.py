@@ -154,8 +154,10 @@ def get_int_detail(half_duplex_list, full_duplex_list, device_int_dict):
 def dict_format(half_duplex_dict, full_duplex_dict):
   """Format dictionaries into a readable format using Pretty Print and return as string""" 
   body = ''
+  half_dup_switches = []
   for key in sorted(half_duplex_dict.keys()):
     if len(half_duplex_dict[key]) > 0:
+      half_dup_switches.append(key)
       body += str("%s Half-Duplex Ports:\n" % key.upper())
       body += str(pprint.pformat(half_duplex_dict[key].items()))
       body += str('\n')
@@ -164,6 +166,9 @@ def dict_format(half_duplex_dict, full_duplex_dict):
     body += str("%s Full Duplex Ports:\n" % key.upper())
     body += str(pprint.pformat(full_duplex_dict[key].items()))
     body += str('\n\n')
+  hds_string = str(half_dup_switches)
+  body_prepend = "Switches with Half-Duplex Ports: " + hds_string 
+  body = body_prepend + '\n\n' + body
   return body
 
 def print_dict(half_duplex_dict, full_duplex_dict):
@@ -220,10 +225,8 @@ def main():
       email_sender = args.email[0]
       email_receiver = args.email[1]
       email_dict(half_duplex_dict, full_duplex_dict, email_sender, email_receiver, smtp_server)
-      #dump_to_yaml(half_duplex_dict, full_duplex_dict)
   else:
       print_dict(half_duplex_dict, full_duplex_dict)
-      #dump_to_yaml(half_duplex_dict, full_duplex_dict)
 
 if __name__ == '__main__':
   try:
