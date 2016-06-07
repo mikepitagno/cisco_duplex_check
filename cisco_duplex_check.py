@@ -45,7 +45,6 @@ def snmp_get_v2(snmp_target, oid, display_errors=False):
       print('    %-16s %-60s' % ('error_message', error_detected))
       print('    %-16s %-60s' % ('error_status', error_status))
       print('    %-16s %-60s' % ('error_index', error_index))
-    sys.exit(0)
 
 def snmp_extract(snmp_data):
   """Format the SNMP response in a human-readable format"""
@@ -56,6 +55,36 @@ def snmp_extract(snmp_data):
   else:
     return snmp_data[0][1].prettyPrint()
 
+def snmp_check(device_name, snmp_community_string, snmp_port):
+  """Run simple SNMP test on specified device to determine if SNMP is working"""
+  sysdesc_oid = '1.3.6.1.2.1.1.1.0'
+  snmp_target = (device_name, snmp_community_string, snmp_port)
+  snmp_data = snmp_get_v2(snmp_target,sysdesc_oid)
+  return snmp_data
+
+def snmpwalk_v2(snmp_target, oid):
+  """snmpwalk"""
+  snmp_host, snmp_community_string, snmp_port = snmp_target
+  snmp_host_and_port = (snmp_host, snmp_port)
+  cmdGen = cmdgen.CommandGenerator()
+  errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.nextCmd(cmdgen.CommunityData(snmp_community_string), cmdgen.UdpTransportTarget(snmp_host_and_port), oid)
+  if errorIndication:
+      print(errorIndication)
+  else:
+      if errorStatus:
+          print('%s at %s' % (
+              errorStatus.prettyPrint(),
+              errorIndex and varBindTable[-1][int(errorIndex)-1] or '?'
+              )
+          )
+      else:
+          device_list = []
+          for varBindTableRow in varBindTable:
+              for name, val in varBindTableRow:
+                  name = name.prettyPrint().split('1.3.6.1.2.1.2.2.1.2.')[1]
+                  device_list.append(name)
+          return device_list
+
 def create_full_dict(args, snmp_community_string, snmp_port):
   """Generate and return full and half duplex dictionaries for all devices specified with either -l or -d argument"""
   half_duplex_dict = {}
@@ -63,7 +92,12 @@ def create_full_dict(args, snmp_community_string, snmp_port):
   if args.device_list is not None:
     for line in args.device_list:
       device_name = line.strip('\n')
-      half_duplex_dict[device_name], full_duplex_dict[device_name] = create_device_dict(device_name, snmp_community_string, snmp_port, half_duplex_dict, full_duplex_dict)
+      snmp_data = snmp_check(device_name, snmp_community_string, snmp_port)
+      if snmp_data is not None: 
+        half_duplex_dict[device_name], full_duplex_dict[device_name] = create_device_dict(device_name, snmp_community_string, snmp_port, half_duplex_dict, full_duplex_dict)
+      else:
+        half_duplex_dict[device_name] = {}
+        full_duplex_dict[device_name] = {'SNMP Failure': 'Check Device SNMP Settings' }
   else:
     device_name = args.device_name
     half_duplex_dict[device_name], full_duplex_dict[device_name] = create_device_dict(device_name, snmp_community_string, snmp_port, half_duplex_dict, full_duplex_dict)
@@ -87,21 +121,19 @@ def create_device_int_dict(snmp_target):
       device_int_dict = yaml.load(f)
   except IOError:
     pass
+    ifdesc_oid = '1.3.6.1.2.1.2.2.1.2'
+    device_int_list = snmpwalk_v2(snmp_target, ifdesc_oid)
     device_int_dict = {}
-    oid_range = range(1,201) + range(10001, 10201) 
-    for i in oid_range:
-      ifdesc_oid_prefix = '1.3.6.1.2.1.2.2.1.2.' + str(i)
-      ifalias_oid_prefix = '1.3.6.1.2.1.31.1.1.1.18.' + str(i)
-      ifdesc_snmp_data = snmp_get_v2(snmp_target, ifdesc_oid_prefix)
-      ifalias_snmp_data = snmp_get_v2(snmp_target, ifalias_oid_prefix)
+    for i in device_int_list:
+      ifdesc_oid = '1.3.6.1.2.1.2.2.1.2.' + str(i)
+      ifalias_oid = '1.3.6.1.2.1.31.1.1.1.18.' + str(i)
+      ifdesc_snmp_data = snmp_get_v2(snmp_target, ifdesc_oid)
+      ifalias_snmp_data = snmp_get_v2(snmp_target, ifalias_oid)
       ifdesc = snmp_extract(ifdesc_snmp_data)
       ifalias = snmp_extract(ifalias_snmp_data)
-      if ifdesc == 'No Such Instance currently exists at this OID':
-        continue
-      else:
-        device_int_dict[ifdesc_oid_prefix] = {}
-        device_int_dict[ifdesc_oid_prefix]['ifdesc'] = ifdesc
-        device_int_dict[ifdesc_oid_prefix]['ifalias'] = ifalias
+      device_int_dict[ifdesc_oid] = {}
+      device_int_dict[ifdesc_oid]['ifdesc'] = ifdesc
+      device_int_dict[ifdesc_oid]['ifalias'] = ifalias
     with open("%s/%s-all_int.yaml" % (device_path,device_name), "w") as f:
       yaml.dump(device_int_dict, f)
   return device_int_dict
@@ -154,6 +186,21 @@ def get_int_detail(half_duplex_list, full_duplex_list, device_int_dict):
 def dict_format(half_duplex_dict, full_duplex_dict):
   """Format dictionaries into a readable format using Pretty Print and return as string""" 
   body = ''
+  for key in sorted(half_duplex_dict.keys()):
+    if len(half_duplex_dict[key]) > 0:
+      body += str("%s Half-Duplex Ports:\n" % key.upper())
+      body += str(pprint.pformat(half_duplex_dict[key].items()))
+      body += str('\n')
+    else:
+      body += str("%s - No Half Duplex Ports\n" % key.upper())
+    body += str("%s Full Duplex Ports:\n" % key.upper())
+    body += str(pprint.pformat(full_duplex_dict[key].items()))
+    body += str('\n\n')
+  return body
+
+def dict_format_new(half_duplex_dict, full_duplex_dict):
+  """Format dictionaries into a readable format using Pretty Print and return as string""" 
+  body = ''
   half_dup_switches = []
   for key in sorted(half_duplex_dict.keys()):
     if len(half_duplex_dict[key]) > 0:
@@ -173,7 +220,7 @@ def dict_format(half_duplex_dict, full_duplex_dict):
 
 def print_dict(half_duplex_dict, full_duplex_dict):
   """Print report to standard output if email option is not specified"""
-  body = dict_format(half_duplex_dict, full_duplex_dict)
+  body = dict_format_new(half_duplex_dict, full_duplex_dict)
   print body
 
 def dump_to_yaml(half_duplex_dict, full_duplex_dict, device_name):
@@ -186,7 +233,7 @@ def dump_to_yaml(half_duplex_dict, full_duplex_dict, device_name):
 
 def email_dict(half_duplex_dict, full_duplex_dict, email_sender, email_receiver, smtp_server):
   """Email report to address specified in command line options"""
-  body = dict_format(half_duplex_dict, full_duplex_dict)
+  body = dict_format_new(half_duplex_dict, full_duplex_dict)
   msg = MIMEText(body)
   msg['Subject'] = "Duplex Report"
   msg['From'] = email_sender
@@ -197,7 +244,6 @@ def email_dict(half_duplex_dict, full_duplex_dict, email_sender, email_receiver,
 
 # Main Program
 def main():
-  
   home = expanduser("~")
   global device_path 
   device_path = home + '/NETWORK_DEVICES'
@@ -225,16 +271,10 @@ def main():
       email_sender = args.email[0]
       email_receiver = args.email[1]
       email_dict(half_duplex_dict, full_duplex_dict, email_sender, email_receiver, smtp_server)
+      #dump_to_yaml(half_duplex_dict, full_duplex_dict)
   else:
       print_dict(half_duplex_dict, full_duplex_dict)
+      #dump_to_yaml(half_duplex_dict, full_duplex_dict)
 
 if __name__ == '__main__':
-  try:
     main()
-  except KeyboardInterrupt:
-    print "/n"
-    print "ERROR: Keyboard Interrupt"
-    try:
-      sys.exit(0)
-    except SystemExit:
-      os._exit(0)
