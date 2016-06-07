@@ -96,8 +96,8 @@ def create_full_dict(args, snmp_community_string, snmp_port):
       if snmp_data is not None: 
         half_duplex_dict[device_name], full_duplex_dict[device_name] = create_device_dict(device_name, snmp_community_string, snmp_port, half_duplex_dict, full_duplex_dict)
       else:
-        half_duplex_dict[device_name] = {}
-        full_duplex_dict[device_name] = {'SNMP Failure': 'Check Device SNMP Settings' }
+        half_duplex_dict[device_name] = {'SNMP Failure': 'Check Device SNMP Settings'}
+        full_duplex_dict[device_name] = {'SNMP Failure': 'Check Device SNMP Settings'}
   else:
     device_name = args.device_name
     half_duplex_dict[device_name], full_duplex_dict[device_name] = create_device_dict(device_name, snmp_community_string, snmp_port, half_duplex_dict, full_duplex_dict)
@@ -203,7 +203,9 @@ def dict_format_new(half_duplex_dict, full_duplex_dict):
   body = ''
   half_dup_switches = []
   for key in sorted(half_duplex_dict.keys()):
-    if len(half_duplex_dict[key]) > 0:
+    if half_duplex_dict[key].keys() == ['SNMP Failure']:
+      body += str("%s - SNMP Failure\n" % key.upper())
+    elif len(half_duplex_dict[key]) > 0:
       half_dup_switches.append(key)
       body += str("%s Half-Duplex Ports:\n" % key.upper())
       body += str(pprint.pformat(half_duplex_dict[key].items()))
