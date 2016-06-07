@@ -204,7 +204,8 @@ def dict_format_new(half_duplex_dict, full_duplex_dict):
   half_dup_switches = []
   for key in sorted(half_duplex_dict.keys()):
     if half_duplex_dict[key].keys() == ['SNMP Failure']:
-      body += str("%s - SNMP Failure\n" % key.upper())
+      body += str("%s - SNMP Failure\n\n" % key.upper())
+      continue
     elif len(half_duplex_dict[key]) > 0:
       half_dup_switches.append(key)
       body += str("%s Half-Duplex Ports:\n" % key.upper())
