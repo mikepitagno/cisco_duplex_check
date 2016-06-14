@@ -2,7 +2,7 @@
 
 ### Introduction
 
-Cisco Catalyst Switch - Duplex Status Reporting Tool.  This tool will check an individual or group of Cisco Catalyst switches for any ports negotiating at half duplex and report and provide a detailed report.
+Cisco Catalyst Switch - Duplex Status Reporting Tool.  This tool will check an individual or group of Cisco Catalyst switches for any ports negotiating at half duplex and provide a detailed report.
 
 ### Installation Notes / Prerequisites
 
