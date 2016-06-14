@@ -15,11 +15,14 @@ sudo pip install pysnmp
 ```
 
 ## Usage
-***Print Report to Terminal:***
-user@host:~$ cisco_duplex_check.py -c 'COMMUNITY STRING' -l 'PATH TO DEVICE LIST' 
-
-***Email Report:***
-user@host:~$ cisco_duplex_check.py -c 'COMMUNITY STRING' -l 'PATH TO DEVICE LIST' -e 'EMAIL_FROM' 'EMAIL_TO' -s 'SMTP_SERVER'
+**Print Report to Terminal:**
+```
+cisco_duplex_check.py -c 'COMMUNITY STRING' -l 'PATH TO DEVICE LIST' 
+```
+**Email Report:**
+```
+cisco_duplex_check.py -c 'COMMUNITY STRING' -l 'PATH TO DEVICE LIST' -e 'EMAIL_FROM' 'EMAIL_TO' -s 'SMTP_SERVER'
+```
 
 ## Sample Output:
 Switches with Half-Duplex Ports: ['US-SW-01', 'US-SW-02']
