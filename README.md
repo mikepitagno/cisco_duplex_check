@@ -6,15 +6,15 @@ Cisco Catalyst Switch - Duplex Status Reporting Tool
 Script written in Python2
 
 PySNMP Required
--Debian/Ubuntu based install:
---sudo apt-get install python-pip
---sudo pip install pysnmp
+Debian/Ubuntu based install:
+sudo apt-get install python-pip
+sudo pip install pysnmp
 
 # Usage Example (Print Report to Terminal))
-user@host:~$ cisco_duplex_check.py -c <COMMUNITY STRING> -l <PATH TO DEVICE LIST> 
+user@host:~$ cisco_duplex_check.py -c 'COMMUNITY STRING' -l 'PATH TO DEVICE LIST' 
 
 # Usage Example (Email Report)
-user@host:~$ cisco_duplex_check.py -c <COMMUNITY STRING> -l <PATH TO DEVICE LIST> -e <EMAIL_FROM> <EMAIL_TO> -s <SMTP_SERVER>
+user@host:~$ cisco_duplex_check.py -c 'COMMUNITY STRING' -l 'PATH TO DEVICE LIST' -e 'EMAIL_FROM' 'EMAIL_TO' -s 'SMTP_SERVER'
 
 # Sample Output:
 Switches with Half-Duplex Ports: ['US-SW-01', 'US-SW-02']
