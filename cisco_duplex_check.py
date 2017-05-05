@@ -179,21 +179,6 @@ def get_int_detail(half_duplex_list, full_duplex_list, device_int_dict):
         full_duplex_dict[int_desc] = int_alias
     return half_duplex_dict, full_duplex_dict
 
-def dict_format(half_duplex_dict, full_duplex_dict):
-    """Format dictionaries into a readable format using Pretty Print and return as string""" 
-    body = ''
-    for key in sorted(half_duplex_dict.keys()):
-        if len(half_duplex_dict[key]) > 0:
-            body += str("%s Half-Duplex Ports:\n" % key.upper())
-            body += str(pprint.pformat(half_duplex_dict[key].items()))
-            body += str('\n')
-        else:
-            body += str("%s - No Half Duplex Ports\n" % key.upper())
-            body += str("%s Full Duplex Ports:\n" % key.upper())
-            body += str(pprint.pformat(full_duplex_dict[key].items()))
-            body += str('\n\n')
-    return body
-
 def dict_format_new(half_duplex_dict, full_duplex_dict):
     """Format dictionaries into a readable format using Pretty Print and return as string""" 
     body = ''
@@ -209,9 +194,9 @@ def dict_format_new(half_duplex_dict, full_duplex_dict):
             body += str('\n')
         else:
             body += str("%s - No Half Duplex Ports\n" % key.upper())
-            body += str("%s Full Duplex Ports:\n" % key.upper())
-            body += str(pprint.pformat(full_duplex_dict[key].items()))
-            body += str('\n\n')
+        body += str("%s Full Duplex Ports:\n" % key.upper())
+        body += str(pprint.pformat(full_duplex_dict[key].items()))
+        body += str('\n\n')
     hds_string = str(half_dup_switches)
     body_prepend = "Switches with Half-Duplex Ports: " + hds_string 
     body = body_prepend + '\n\n' + body
